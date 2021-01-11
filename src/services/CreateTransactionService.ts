@@ -1,6 +1,8 @@
-import { getRepository } from 'typeorm'; 
+import { getCustomRepository, getRepository } from 'typeorm'; 
 
 import  AppError from '../errors/AppError';
+
+import TransactionRepository from '../repositories/TransactionsRepository';
 
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
@@ -14,30 +16,26 @@ interface Request {
 
 class CreateTransactionService {
   public async execute({ title, type, value, category  }: Request): Promise<Transaction> {
-    const transactionRepository = getRepository(Transaction);
+    const transactionRepository = getCustomRepository(TransactionRepository); //getCustomRepository é pq a gente ta usando um repositorio q a gnt criou
+    const categoryRepository = getRepository(Category);
 
-    const checkCategoryExists = await transactionRepository.findOne({
-        where: { category },
+    let transactionCategory = await categoryRepository.findOne({
+        where: { title: category },
     });
 
-    if (checkCategoryExists) { //****cadastrar nova categoria e retornar id*/
-      const categoryRepository = getRepository(Category);
-      const newCategory = categoryRepository.create({
-        title: category,
-      })
+    if (!transactionCategory) { //**** se não existir cadastrar nova categoria e retornar id*/
+        transactionCategory = categoryRepository.create({
+          title: category,
+        });
 
-      await categoryRepository.save(newCategory);
-
-      checkCategoryExists.category_id = newCategory.id;
+        await categoryRepository.save(transactionCategory); 
     }
-
-    //const category_id = category; /***acertar - newCategory.id*/
 
     const transaction = transactionRepository.create({
       title,
       type,
       value,
-      category_id: checkCategoryExists?.category_id,  //ver depois********
+      category: transactionCategory, 
     });
 
     await transactionRepository.save(transaction);

@@ -3,19 +3,23 @@ import { Router } from 'express';
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import CreateTransactionService from '../services/CreateTransactionService';
 import DeleteTransactionService from '../services/DeleteTransactionService';
+import { getCustomRepository } from 'typeorm';
 // import ImportTransactionsService from '../services/ImportTransactionsService';
 
 const transactionsRouter = Router();
-const transactionsRepository = new TransactionsRepository();
+//const transactionsRepository = new TransactionsRepository();
 
 transactionsRouter.get('/', async (request, response) => {
-  const transactions = transactionsRepository.all();
-    const balance = transactionsRepository.getBalance();
+  //const transactions = transactionsRepository.all();
+  const transactionsRepository = getCustomRepository(TransactionsRepository); //***
 
-    return response.json({ 
-      transactions, 
-      balance,
-    });
+  const transactions = await transactionsRepository.find(); //find sem nada pega todo o repositorio
+  const balance = await transactionsRepository.getBalance();
+
+  return response.json({ 
+    transactions, 
+    balance,
+  });
 });
 
 transactionsRouter.post('/', async (request, response) => {
