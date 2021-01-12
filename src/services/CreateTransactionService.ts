@@ -1,6 +1,6 @@
-import { getCustomRepository, getRepository } from 'typeorm'; 
+import { getCustomRepository, getRepository } from 'typeorm';
 
-import  AppError from '../errors/AppError';
+import AppError from '../errors/AppError';
 
 import TransactionRepository from '../repositories/TransactionsRepository';
 
@@ -8,34 +8,54 @@ import Transaction from '../models/Transaction';
 import Category from '../models/Category';
 
 interface Request {
-  title: string,
-  type: 'income' | 'outcome',
-  value: number,
-  category: string,
+  title: string;
+  type: 'income' | 'outcome';
+  value: number;
+  category: string;
 }
 
 class CreateTransactionService {
-  public async execute({ title, type, value, category  }: Request): Promise<Transaction> {
-    const transactionRepository = getCustomRepository(TransactionRepository); //getCustomRepository é pq a gente ta usando um repositorio q a gnt criou
+  public async execute({
+    title,
+    type,
+    value,
+    category,
+  }: Request): Promise<Transaction> {
+    const transactionRepository = getCustomRepository(TransactionRepository); // getCustomRepository é pq a gente ta usando um repositorio q a gnt criou
     const categoryRepository = getRepository(Category);
 
+    if (type === 'outcome') {
+      if ((await transactionRepository.getBalance()).total < value) {
+        throw new AppError('Extrapolou o valor total disponível');
+      }
+    }
+
+    /*
+    const { total } = await transactionRepository.getBalance();
+
+    if(type === "outcome" && total < value){
+      throw new AppError('You do not have enough balance');
+    }
+    */
+
     let transactionCategory = await categoryRepository.findOne({
-        where: { title: category },
+      where: { title: category },
     });
 
-    if (!transactionCategory) { //**** se não existir cadastrar nova categoria e retornar id*/
-        transactionCategory = categoryRepository.create({
-          title: category,
-        });
+    if (!transactionCategory) {
+      //* *** se não existir cadastrar nova categoria e retornar id*/
+      transactionCategory = categoryRepository.create({
+        title: category,
+      });
 
-        await categoryRepository.save(transactionCategory); 
+      await categoryRepository.save(transactionCategory);
     }
 
     const transaction = transactionRepository.create({
       title,
       type,
       value,
-      category: transactionCategory, 
+      category: transactionCategory,
     });
 
     await transactionRepository.save(transaction);

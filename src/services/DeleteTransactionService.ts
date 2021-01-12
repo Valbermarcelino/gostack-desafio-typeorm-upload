@@ -1,23 +1,24 @@
-import { getCustomRepository } from 'typeorm'; 
+import { getCustomRepository } from 'typeorm';
 
 import AppError from '../errors/AppError';
 
-import Transaction from '../models/Transaction';
 import TransactionsRepository from '../repositories/TransactionsRepository';
 
 class DeleteTransactionService {
-  public async execute( id: string ): Promise<void> {
+  public async execute(id: string): Promise<void> {
     const transactionRepository = getCustomRepository(TransactionsRepository);
 
     const transaction = await transactionRepository.findOne({
-      where: { id: id },
+      where: { id },
     });
 
-    if(transaction) {
-        throw new AppError('Transaction not found.', 401);
+    // const transaction = await transactionRepository.findOne(id); pode ser assim tbm
+
+    if (!transaction) {
+      throw new AppError('Transaction not found.', 401);
     }
 
-    transactionRepository.delete(id);
+    await transactionRepository.remove(transaction);
   }
 }
 
